@@ -31,7 +31,8 @@ function M.plotLogPDF(filename)
 	gnuplot.plotflush()
 	gnuplot.xlabel('Epoch')
 	gnuplot.ylabel('Error')
-	gnuplot.grid(true)																																																																																																																																						
+	gnuplot.axis({1, "", 0, 100})
+	gnuplot.grid(true)																																																																																																																																					
 	gnuplot.title('Model Convergence Curves')
 end
 

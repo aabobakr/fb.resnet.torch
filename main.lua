@@ -15,6 +15,7 @@ local models = require 'models/init'
 local Trainer = require 'train'
 local opts = require 'opts'
 local checkpoints = require 'checkpoints'
+local logPlotter = require 'plotter'
 
 -- we don't  change this to the 'correct' type (e.g. HalfTensor), because math
 -- isn't supported on that type.  Type conversion later will handle having
@@ -22,6 +23,14 @@ local checkpoints = require 'checkpoints'
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.setnumthreads(1)
 
+-- setting experiment ID 
+local timeStamp =  os.date("*t", os.time())
+local expId =  string.format("%d-%d-%d-%d-%d", timeStamp['year'],
+                              timeStamp['month'], timeStamp['day'], 
+                              timeStamp['hour'], timeStamp['min']) 
+local logfile = string.format('error_%s.log', expId)
+
+-- parsing training options
 local opt = opts.parse(arg)
 torch.manualSeed(opt.manualSeed)
 cutorch.manualSeedAll(opt.manualSeed)
@@ -47,6 +56,10 @@ end
 local startEpoch = checkpoint and checkpoint.epoch + 1 or opt.epochNumber
 local bestTop1 = math.huge
 local bestTop5 = math.huge
+-- create logger
+local logger = optim.Logger(paths.concat(opt.save, logfile))
+
+-- training loop
 for epoch = startEpoch, opt.nEpochs do
    -- Train for a single epoch
    local trainTop1, trainTop5, trainLoss = trainer:train(epoch, trainLoader)
@@ -61,6 +74,8 @@ for epoch = startEpoch, opt.nEpochs do
       bestTop5 = testTop5
       print(' * Best model ', testTop1, testTop5)
    end
+   logger:add{['% train error']    = trainTop1, ['% val error']    = testTop1}
+   logPlotter.plotLogPDF(paths.concat(opt.save, logfile))
 
    checkpoints.save(epoch, model, trainer.optimState, bestModel, opt)
 end
